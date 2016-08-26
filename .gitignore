@@ -1,0 +1,17 @@
+*.iml
+*.swp
+*.txt*.txt*.iml
+*.catalina*
+*/classes/
+.DS_Store
+.classpath
+.idea/
+.project
+.settings
+/target
+classes
+custom.cfg
+md5sum
+target/
+tmp/
+catalina.*/
