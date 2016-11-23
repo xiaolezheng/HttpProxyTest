@@ -10,7 +10,7 @@
         <servlet-class>com.lxz.support.ProxyServlet</servlet-class>
         <init-param>
             <param-name>targetUri</param-name>
-            <param-value>http://yunbiaodan.cn/api</param-value>
+            <param-value>https://www.weibangong.com/api</param-value>
         </init-param>
         <init-param>
             <param-name>log</param-name>

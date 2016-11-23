@@ -164,6 +164,7 @@ public class ProxyServlet extends HttpServlet {
     @Override
     protected void service(HttpServletRequest servletRequest, HttpServletResponse servletResponse)
             throws ServletException, IOException {
+        long start = System.currentTimeMillis();
         //initialize request attributes from caches if unset by a subclass by this point
         if (servletRequest.getAttribute(ATTR_TARGET_URI) == null) {
             servletRequest.setAttribute(ATTR_TARGET_URI, targetUri);
@@ -171,7 +172,6 @@ public class ProxyServlet extends HttpServlet {
         if (servletRequest.getAttribute(ATTR_TARGET_HOST) == null) {
             servletRequest.setAttribute(ATTR_TARGET_HOST, targetHost);
         }
-
         // Make the Request
         //note: we won't transfer the protocol version because I'm not sure it would truly be compatible
         String method = servletRequest.getMethod();
@@ -194,10 +194,7 @@ public class ProxyServlet extends HttpServlet {
 
         HttpResponse proxyResponse = null;
         try {
-            // Execute the request
-            if (doLog) {
-                log("proxy " + method + " uri: " + servletRequest.getRequestURI() + " -- " + proxyRequest.getRequestLine().getUri());
-            }
+
             HttpClient proxyClient = HttpClientFactory.getInstance().getHttpClient();
             proxyResponse = proxyClient.execute(getTargetHost(servletRequest), proxyRequest);
 
@@ -222,6 +219,12 @@ public class ProxyServlet extends HttpServlet {
             // Send the content to the client
             copyResponseEntity(proxyResponse, servletResponse);
 
+            long cost = System.currentTimeMillis()- start;
+
+            // Execute the request
+            if (doLog) {
+                log("proxy " + method + " uri: " + servletRequest.getRequestURI() + " -- " + proxyRequest.getRequestLine().getUri() + " -- " + cost);
+            }
         } catch (Exception e) {
             //abort request, according to best practice with HttpClient
             if (proxyRequest instanceof AbortableHttpRequest) {
