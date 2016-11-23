@@ -10,6 +10,7 @@ import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
+import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
@@ -24,6 +25,7 @@ import javax.net.ssl.SSLHandshakeException;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.UnknownHostException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by xiaolezheng on 16/11/23.
@@ -50,6 +52,9 @@ public final class HttpClientFactory {
     private static PoolingHttpClientConnectionManager connManager = null;
 
     static {
+        createHttpClientConnectionManager();
+        new IdleConnectionMonitorThread(connManager).start();
+
         // jvm退出关闭连接池
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
@@ -64,7 +69,6 @@ public final class HttpClientFactory {
     }
 
     private HttpClientFactory() {
-        createHttpClientConnectionManager();
     }
 
     private static class HttpClientFactoryInner {
@@ -90,7 +94,7 @@ public final class HttpClientFactory {
     /**
      * 设置HttpClient连接池
      */
-    private void createHttpClientConnectionManager() {
+    private static void createHttpClientConnectionManager() {
         try {
             // 创建SSLSocketFactory
             // 定义socket工厂类 指定协议（Http、Https）
@@ -178,5 +182,35 @@ public final class HttpClientFactory {
         };
 
         return keepAliveStrategy;
+    }
+
+    static class IdleConnectionMonitorThread extends Thread {
+        private final HttpClientConnectionManager connMgr;
+
+        public IdleConnectionMonitorThread(HttpClientConnectionManager connMgr) {
+            this.connMgr = connMgr;
+        }
+
+        @Override
+        public void run() {
+            try {
+                while (true) {
+                    synchronized (this) {
+                        TimeUnit.SECONDS.sleep(10);
+                        // Close expired connections
+                        if (connMgr != null) {
+                            connMgr.closeExpiredConnections();
+                            // Optionally, close connections
+                            // that have been idle longer than 30 sec
+                            connMgr.closeIdleConnections(60, TimeUnit.SECONDS);
+                            logger.info("http连接过期检测-----------");
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("http连接池过期检测异常", e);
+            }
+        }
+
     }
 }
