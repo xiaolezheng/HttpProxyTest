@@ -75,6 +75,7 @@ public final class HttpClientFactory {
                 .setConnectionManager(connManager)
                 .setRetryHandler(httpRequestRetry())
                 .setDefaultRequestConfig(config())
+                .evictExpiredConnections()
                 .build();
 
         return httpClient;
