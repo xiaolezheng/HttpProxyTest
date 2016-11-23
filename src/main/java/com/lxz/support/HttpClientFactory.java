@@ -1,6 +1,7 @@
 package com.lxz.support;
 
 
+import org.apache.http.HttpResponse;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.HttpRequestRetryHandler;
@@ -8,8 +9,10 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.ConnectTimeoutException;
+import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpContext;
@@ -40,6 +43,8 @@ public final class HttpClientFactory {
     private static int PER_ROUTE_MAX_CONN = 50;
     //连接丢失后,重试次数
     private static int MAX_RETRY_COUNT = 2;
+    //keepAlive 时间
+    private static int KEEP_ALIVE_TIME = 1000 * 60;
 
     // 创建连接管理器
     private static PoolingHttpClientConnectionManager connManager = null;
@@ -76,6 +81,7 @@ public final class HttpClientFactory {
                 .setRetryHandler(httpRequestRetry())
                 .setDefaultRequestConfig(config())
                 .evictExpiredConnections()
+                .setKeepAliveStrategy(connectionKeepAliveStrategy())
                 .build();
 
         return httpClient;
@@ -96,7 +102,7 @@ public final class HttpClientFactory {
             // 创建连接管理器
             connManager = new PoolingHttpClientConnectionManager(registry);
             connManager.setMaxTotal(MAX_TOTAL);//设置最大连接数
-            connManager.setDefaultMaxPerRoute(PER_ROUTE_MAX_CONN);//设置每个路由默认连接数
+            connManager.setDefaultMaxPerRoute(PER_ROUTE_MAX_CONN);//设置每个路由默认连接数,单条链路最大连接数（一个ip+一个端口 是一个链路
         } catch (Exception e) {
             //throw new OpenSysException("创建httpClient(https)连接池异常", e);
             logger.error("创建httpClient(https)连接池异常", e);
@@ -156,5 +162,21 @@ public final class HttpClientFactory {
                 .build();
 
         return requestConfig;
+    }
+
+    private ConnectionKeepAliveStrategy connectionKeepAliveStrategy() {
+        ConnectionKeepAliveStrategy keepAliveStrategy = new DefaultConnectionKeepAliveStrategy() {
+            @Override
+            public long getKeepAliveDuration(HttpResponse response, HttpContext context) {
+                long keepAlive = super.getKeepAliveDuration(response, context);
+                if (keepAlive == -1) {
+                    keepAlive = KEEP_ALIVE_TIME;
+                }
+                return keepAlive;
+            }
+
+        };
+
+        return keepAliveStrategy;
     }
 }
