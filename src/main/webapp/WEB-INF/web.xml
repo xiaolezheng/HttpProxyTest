@@ -1,24 +1,9 @@
-<!DOCTYPE web-app PUBLIC
-        "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
-        "http://java.sun.com/dtd/web-app_2_3.dtd" >
+<?xml version="1.0" encoding="UTF-8"?>
 
-<web-app>
-    <display-name>Archetype Created Web Application</display-name>
+<web-app
+        version="3.0"
+        xmlns="http://java.sun.com/xml/ns/javaee"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
 
-    <servlet>
-        <servlet-name>proxy</servlet-name>
-        <servlet-class>com.lxz.support.ProxyServlet</servlet-class>
-        <init-param>
-            <param-name>targetUri</param-name>
-            <param-value>https://www.weibangong.com/api</param-value>
-        </init-param>
-        <init-param>
-            <param-name>log</param-name>
-            <param-value>true</param-value>
-        </init-param>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>proxy</servlet-name>
-        <url-pattern>/api/*</url-pattern>
-    </servlet-mapping>
 </web-app>

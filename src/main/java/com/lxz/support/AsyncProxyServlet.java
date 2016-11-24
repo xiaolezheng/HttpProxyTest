@@ -35,6 +35,7 @@ import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.AsyncContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebInitParam;
 import javax.servlet.annotation.WebServlet;
@@ -51,6 +52,8 @@ import java.util.BitSet;
 import java.util.Enumeration;
 import java.util.Formatter;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * An HTTP reverse proxy/gateway servlet. It is designed to be extended for customization
@@ -67,12 +70,16 @@ import java.util.List;
  *
  * @author David Smiley dsmiley@mitre.org
  */
-@WebServlet(name = "ProxyServlet", urlPatterns = "/open/*", initParams = {
-        @WebInitParam(name = "targetUri", value = "https://www.weibangong.com/api"),
-        @WebInitParam(name = "log", value = "true")
-})
-public class ProxyServlet extends HttpServlet {
+@WebServlet(name = "ProxyServlet", urlPatterns = "/api/*", asyncSupported = true,
+        initParams = {
+                @WebInitParam(name = "targetUri", value = "https://www.weibangong.com/api"),
+                @WebInitParam(name = "log", value = "true")
+        }
+)
+public class AsyncProxyServlet extends HttpServlet {
     private static final Logger LOGGER = LoggerFactory.getLogger(ProxyServlet.class);
+
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newScheduledThreadPool(20);
 
   /* INIT PARAMETER NAME CONSTANTS */
 
@@ -173,6 +180,13 @@ public class ProxyServlet extends HttpServlet {
     @Override
     protected void service(HttpServletRequest servletRequest, HttpServletResponse servletResponse)
             throws ServletException, IOException {
+
+        final AsyncContext ctx = servletRequest.startAsync();
+        ctx.setTimeout(50000);
+        EXECUTOR_SERVICE.submit(new Work(ctx));
+    }
+
+    private void doProcess(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws IOException, ServletException {
         long start = System.currentTimeMillis();
         //initialize request attributes from caches if unset by a subclass by this point
         if (servletRequest.getAttribute(ATTR_TARGET_URI) == null) {
@@ -232,7 +246,7 @@ public class ProxyServlet extends HttpServlet {
 
             // Execute the request
             if (doLog) {
-                LOGGER.info("proxy " + method + " uri: " + servletRequest.getRequestURI() + " -- " + proxyRequest.getRequestLine().getUri() + " -- " + cost);
+                LOGGER.info("proxy " + method + " uri: " + servletRequest.getRequestURI() + " -- " + proxyRequest.getRequestLine().getUri() + " -- " + statusCode + " -- " + cost);
             }
         } catch (Exception e) {
             //abort request, according to best practice with HttpClient
@@ -585,4 +599,23 @@ public class ProxyServlet extends HttpServlet {
         asciiQueryChars.set((int) '%');//leave existing percent escapes in place
     }
 
+
+    class Work implements Runnable {
+        private AsyncContext asyncContext;
+
+        public Work(AsyncContext asyncContext) {
+            this.asyncContext = asyncContext;
+        }
+
+        public void run() {
+            try {
+                HttpServletRequest request = (HttpServletRequest) asyncContext.getRequest();
+                HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
+                doProcess(request, response);
+                asyncContext.complete();
+            } catch (Exception e) {
+                LOGGER.error("异步处理异常", e);
+            }
+        }
+    }
 }
