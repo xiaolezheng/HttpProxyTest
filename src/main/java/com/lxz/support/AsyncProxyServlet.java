@@ -77,7 +77,7 @@ import java.util.concurrent.Executors;
         }
 )
 public class AsyncProxyServlet extends HttpServlet {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ProxyServlet.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncProxyServlet.class);
 
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newScheduledThreadPool(20);
 
@@ -98,9 +98,9 @@ public class AsyncProxyServlet extends HttpServlet {
      */
     protected static final String P_TARGET_URI = "targetUri";
     protected static final String ATTR_TARGET_URI =
-            ProxyServlet.class.getSimpleName() + ".targetUri";
+            AsyncProxyServlet.class.getSimpleName() + ".targetUri";
     protected static final String ATTR_TARGET_HOST =
-            ProxyServlet.class.getSimpleName() + ".targetHost";
+            AsyncProxyServlet.class.getSimpleName() + ".targetHost";
 
   /* MISC */
 
@@ -218,8 +218,9 @@ public class AsyncProxyServlet extends HttpServlet {
         HttpResponse proxyResponse = null;
         try {
 
-            HttpClient proxyClient = HttpClientFactory.getInstance().getHttpClient();
-            proxyResponse = proxyClient.execute(getTargetHost(servletRequest), proxyRequest);
+            //HttpClient proxyClient = HttpClientFactory.getInstance().getHttpClient();
+            //proxyResponse = proxyClient.execute(getTargetHost(servletRequest), proxyRequest);
+            proxyResponse = OkHttpClientFactory.getHttpClient().execute(getTargetHost(servletRequest), proxyRequest);
 
             // Process the response
             int statusCode = proxyResponse.getStatusLine().getStatusCode();

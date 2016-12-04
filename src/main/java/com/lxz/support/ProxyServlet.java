@@ -67,7 +67,7 @@ import java.util.List;
  *
  * @author David Smiley dsmiley@mitre.org
  */
-@WebServlet(name = "ProxyServlet", urlPatterns = "/open/*", initParams = {
+@WebServlet(name = "ProxyServlet", urlPatterns = "/api/*", initParams = {
         @WebInitParam(name = "targetUri", value = "https://www.weibangong.com/api"),
         @WebInitParam(name = "log", value = "true")
 })
@@ -204,8 +204,9 @@ public class ProxyServlet extends HttpServlet {
         HttpResponse proxyResponse = null;
         try {
 
-            HttpClient proxyClient = HttpClientFactory.getInstance().getHttpClient();
-            proxyResponse = proxyClient.execute(getTargetHost(servletRequest), proxyRequest);
+            //HttpClient proxyClient = HttpClientFactory.getInstance().getHttpClient();
+            //proxyResponse = proxyClient.execute(getTargetHost(servletRequest), proxyRequest);
+            proxyResponse = OkHttpClientFactory.getHttpClient().execute(getTargetHost(servletRequest), proxyRequest);
 
             // Process the response
             int statusCode = proxyResponse.getStatusLine().getStatusCode();
